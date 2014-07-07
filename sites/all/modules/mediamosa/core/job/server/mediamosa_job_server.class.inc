@@ -358,9 +358,9 @@ class mediamosa_job_server {
     // Need mediafile.
     $mediafile_src = mediamosa_asset_mediafile::must_exists($mediafile_id_src);
 
+    /* Todo! Is This needed?
     // Get the filename of the source.
     $mediamosa_uri = mediamosa_storage::get_uri_mediafile($mediafile_src);
-
     // Check of the source file exists.
     if (!mediamosa_io::file_exists($mediamosa_uri)) {
       $link_asset = self::get_asset_link($job_id);
@@ -369,7 +369,7 @@ class mediamosa_job_server {
       self::log_mediafile($mediafile_id_src, "Job ID: @job_id, memory_get_peak_usage = @memory_get_peak_usage, memory_usage: @memory_get_usage", array('@job_id' => $job_id, '@memory_get_peak_usage' => memory_get_peak_usage(), '@memory_get_usage' => memory_get_usage()));
       return;
     }
-
+    */
     // Based on jobtype we execute the job.
     $execution_string = '';
     switch ($job_type) {
@@ -423,11 +423,6 @@ class mediamosa_job_server {
       // Enrich with changed.
       $fields = mediamosa_db::db_update_enrich($fields);
 
-      // Generate event analyse finished.
-      if (module_exists('rules')) {
-        rules_invoke_event('mediamosa_event_analyse_finished', $mediafile_id_src);
-      }
-
       // And update row.
       mediamosa_db::db_update(mediamosa_job_server_analyse_db::TABLE_NAME)
         ->fields($fields)
@@ -437,7 +432,7 @@ class mediamosa_job_server {
     else {
       $exec_output = mediamosa_io::exec($execution_string);
       $link_asset = self::get_asset_link($job_id);
-      self::log_mediafile($mediafile_id_src, 'Job @job_type (Job ID: @job_id) returned output: @output<br /><br />@link',
+      self::log_mediafile($mediafile_id_src, 'Job @job_type (Job ID: @job_id) returned this output: @output<br /><br />@link',
         array(
           '@job_type' => $job_type,
           '@job_id' => $job_id,
@@ -482,6 +477,11 @@ class mediamosa_job_server {
         '@link' => $link_asset,
       )
     );
+
+    // Generate event analyse finished.
+    if (module_exists('rules')) {
+      rules_invoke_event('mediamosa_event_analyse_finished', $mediafile_id);
+    }
 
     return $analyse_result;
   }

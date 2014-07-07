@@ -676,7 +676,21 @@ class mediamosa_rest_call_media_download extends mediamosa_rest_call {
 
     // Make sure the file exists we want to download.
     if (!mediamosa_io::file_exists($file) || !mediamosa_io::is_file($file)) {
-      throw new mediamosa_exception_error_404(); // File not found.
+      // File not found.
+      throw new mediamosa_exception_error_404();
+    }
+
+    // @todo: temporary fix for tgz.
+    $finfo = new finfo(FILEINFO_MIME);
+    if ($finfo) {
+      $file_info = $finfo->file($file);
+      $mime_type = substr($file_info, 0, strpos($file_info, ';'));
+      if (($mime_type == 'application/x-gzip') && (substr($filename, -4) != '.tgz')) {
+        $filename .= '.tgz';
+      }
+      if (($mime_type == 'application/zip') && (substr($filename, -4) != '.zip')) {
+        $filename .= '.zip';
+      }
     }
 
     // Set headers.
@@ -685,8 +699,9 @@ class mediamosa_rest_call_media_download extends mediamosa_rest_call {
     header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
     header('Cache-Control: private, false');
     header('Content-Description: Download');
-    header('Content-Type: application/force-download');
-    header('Content-Length: ' . filesize($file));
+    // header('Content-Type: application/force-download');
+    // header('Content-Length: ' . filesize($file));
+    header('Content-Type: application/octet-stream');
 
     // Force a save dialog.
     header('Content-Disposition: attachment; filename="' . mime_header_encode($filename) . '"');

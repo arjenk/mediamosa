@@ -1,0 +1,116 @@
+<?php
+/**
+ * @file
+ * Archive tool module.
+ */
+
+/**
+ * Implements hook_mediamosa_tool_info().
+ */
+function mediamosa_tool_archive_mediamosa_tool_info() {
+  return array(
+    mediamosa_tool_archive::NAME => array(
+      'name' => t('Archive'),
+      'description' => t('Archive files.'),
+    ));
+}
+
+/**
+ * Implements hook_mediamosa_tool_can_analyse().
+ */
+function mediamosa_tool_archive_mediamosa_tool_can_analyse($mime_type) {
+  return FALSE;
+}
+
+/**
+ * Implements hook_mediamosa_tool_can_generate_still().
+ */
+function mediamosa_tool_archive_mediamosa_tool_can_generate_still($mime_type) {
+  return FALSE;
+}
+
+/**
+ * Generate information for the status page.
+ */
+function _mediamosa_tool_archive_status_generate() {
+  // For several topics we provide a link to webpages with configuration hints.
+  $helper_links = array(
+    'zip' => l(t('here'), 'http://www.info-zip.org'),
+  );
+
+  $results = array();
+
+  $exec_output = array();
+  $found = mediamosa_io::command_installed('zip -v', $exec_output);
+  $status_line = $found ? _mediamosa_maintenance_status_search_in_array('This is Zip', $exec_output) : t('zip command not found');
+  $version = $found ? drupal_substr($status_line, drupal_strlen('This is Zip ')) : '';
+  $pos = strpos($version, '.');
+  if ($pos !== FALSE) {
+    $version = drupal_substr($version, 0, $pos);
+  }
+
+  $results['archive'] = array(
+    'title' => t('Archive tool: zip'),
+    'value' => $status_line,
+    'severity' => _mediamosa_maintenance_status_okerror($found),
+    'description' => $found ? '' : t('Install zip. You can find more information how to install zip !here', array('!here' => $helper_links['zip'])),
+  );
+
+  // Making the report.
+  return array(
+    'configuration' => array(
+      'title' => t('Archive tool'),
+      'results' => $results,
+    ),
+  );
+}
+
+/**
+ * Implements hook_mediamosa_status_collect().
+ */
+function mediamosa_tool_archive_mediamosa_status_collect($reset = FALSE) {
+  $mediamosa_status_collect = array();
+  if (!$reset) {
+    $mediamosa_status_collect = variable_get('mediamosa_status_archive_collect_' . mediamosa::get_server_id(), array());
+  }
+
+  if (empty($mediamosa_status_collect)) {
+    $mediamosa_status_collect = array('time' => REQUEST_TIME, 'statuses' => _mediamosa_tool_archive_status_generate());
+    variable_set('mediamosa_status_archive_collect_' . mediamosa::get_server_id(), $mediamosa_status_collect);
+  }
+
+  return $mediamosa_status_collect['statuses'];
+}
+
+/**
+ * Implements hook_mediamosa_register_rest_call().
+ */
+function mediamosa_tool_archive_mediamosa_register_rest_call() {
+  $rest_calls = array();
+
+  // Download multiple assets.
+  $rest_calls['archive/create'][mediamosa_rest_call::METHOD_GET] = array(
+    mediamosa_rest_call::CLASS_NAME => 'mediamosa_rest_call_archive_create',
+    mediamosa_rest_call::STATUS => mediamosa_rest_call::STATUS_ACTIVE,
+    mediamosa_rest_call::MODULE_NAME => 'mediamosa_tool_archive',
+    mediamosa_rest_call::VERSION => mediamosa_version::MEDIAMOSA_VERSION_3_5_1,
+  );
+
+  return $rest_calls;
+}
+
+/**
+ * Implements hook_mediamosa_register_rest_call_doc().
+ */
+function mediamosa_tool_archive_mediamosa_register_rest_call_doc() {
+  $rest_calls = array();
+
+  $rest_calls['archive/create'][mediamosa_rest_call::METHOD_GET] = array(
+    mediamosa_rest_call::TITLE => 'Create a archive (zip,tgz) from a list of asset_id\'s.',
+    mediamosa_rest_call::DESCRIPTION => '',
+    mediamosa_rest_call::EXAMPLE_REQUEST => '',
+    mediamosa_rest_call::RESPONSE_FIELDS => array(),
+    mediamosa_rest_call::EXAMPLE_RESPONSE => '',
+  );
+
+}

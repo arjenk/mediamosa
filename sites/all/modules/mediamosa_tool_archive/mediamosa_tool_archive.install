@@ -1,0 +1,81 @@
+<?php
+/**
+ * @file
+ * Archive tool installer.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function mediamosa_tool_archive_install() {
+
+  $t = get_t();
+  // Tool parameters.
+  $default_params = array(
+    array(
+      'archive', 'mediafiles', 'mediafiles', NULL, NULL, NULL, '', 'FALSE', $t('Array of mediafiles to archive.')),
+    array(
+      'archive', 'filename', 'filename', NULL, NULL, NULL, '', 'FALSE', $t('Name of the archive file.')),
+  );
+
+  // Insert default mappings as nodes.
+  foreach ($default_params as $default_param) {
+    $node = mediamosa_node::create_basic_node(mediamosa_node::MEDIAMOSA_NODE_TYPE_TOOL_PARAMS, $default_param[1]);
+
+    $node->{mediamosa_tool_params_db::TOOL} = $default_param[0];
+    $node->{mediamosa_tool_params_db::NICE_PARAMETER} = $default_param[1];
+    $node->{mediamosa_tool_params_db::TOOL_PARAMETER} = $default_param[2];
+    $node->{mediamosa_tool_params_db::MIN_VALUE} = $default_param[3];
+    $node->{mediamosa_tool_params_db::MAX_VALUE} = $default_param[4];
+    $node->{mediamosa_tool_params_db::ALLOWED_VALUE} = $default_param[5];
+    $node->{mediamosa_tool_params_db::DEFAULT_VALUE} = $default_param[6];
+    $node->{mediamosa_tool_params_db::REQUIRED} = $default_param[7];
+    $node->{mediamosa_tool_params_db::DESCRIPTION} = $default_param[8];
+
+    $node = node_save($node);
+  }
+
+  // Transcode profile.
+  $default_profiles = array(
+    array('archive', 'FALSE', 'archive', 'tgz', ''),
+  );
+
+  foreach ($default_profiles as $default_profile) {
+    $node = mediamosa_node::create_basic_node(mediamosa_node::MEDIAMOSA_NODE_TYPE_TRANSCODE_PROFILE, $default_profile[0]);
+
+    $node->{mediamosa_transcode_profile_db::APP_ID} = 0;
+    $node->{mediamosa_transcode_profile_db::VERSION} = 0;
+    $node->{mediamosa_transcode_profile_db::PROFILE} = $default_profile[0];
+    $node->{mediamosa_transcode_profile_db::IS_DEFAULT_PROFILE} = $default_profile[1];
+    $node->{mediamosa_transcode_profile_db::TOOL} = $default_profile[2];
+    $node->{mediamosa_transcode_profile_db::FILE_EXTENSION} = $default_profile[3];
+    $node->{mediamosa_transcode_profile_db::COMMAND} = $default_profile[4];
+
+    $node = node_save($node);
+  }
+}
+
+/**
+ * Implements hook_unstall().
+ */
+function mediamosa_tool_archive_uninstall() {
+
+  $query = new EntityFieldQuery();
+  $entities = $query
+    ->entityCondition('entity_type', 'node')
+    ->propertyCondition('type',
+      array(
+        mediamosa_node::MEDIAMOSA_NODE_TYPE_TRANSCODE_PROFILE,
+      ), 'IN')
+    ->execute();
+  $nodes = node_load_multiple(array_keys($entities['node']));
+
+  // Can't add tool=archive to FieldQuery, so do it here.
+  $nodes_to_delete = array();
+  foreach ($nodes as $node) {
+    if ($node->tool == 'archive') {
+      $nodes_to_delete[] = $node->nid;
+    }
+  }
+  node_delete_multiple($nodes_to_delete);
+}
