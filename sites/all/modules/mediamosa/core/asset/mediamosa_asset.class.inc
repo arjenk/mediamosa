@@ -116,7 +116,7 @@ class mediamosa_asset {
    *
    * Note: does not return boolean, will throw exception when failure.
    */
-  public static function delete($asset_id, $cascade = TRUE) {
+  public static function delete($asset_id, $cascade = TRUE, $register_delete = TRUE) {
 
     // Start transaction.
     $transaction = mediamosa_db::db_transaction();
@@ -230,41 +230,44 @@ class mediamosa_asset {
         )
       )->fetchCol();
 
-      // Foreach my collection.
-      $is_coll = FALSE;
-      foreach ($result as $collection_id) {
-        $is_coll = TRUE;
-        // Create entry in the mediamosa_asset_delete table.
-        mediamosa_db::db_query(
-          "REPLACE LOW_PRIORITY {#mediamosa_asset_delete} (#asset_id, #app_id, #videotimestampmodified, #coll_id) VALUES (:asset_id, :app_id, :now, :coll_id)",
-          array(
-            '#mediamosa_asset_delete' => mediamosa_asset_delete_db::TABLE_NAME,
-            '#asset_id' => mediamosa_asset_delete_db::ID,
-            '#app_id' => mediamosa_asset_delete_db::APP_ID,
-            '#videotimestampmodified' => mediamosa_asset_delete_db::VIDEOTIMESTAMPMODIFIED,
-            '#coll_id' => mediamosa_asset_delete_db::COLL_ID,
-            ':asset_id' => $asset_id,
-            ':app_id' => $app_id,
-            ':coll_id' => $collection_id,
-            ':now' => mediamosa_datetime::utc_current_timestamp_now(),
-          )
-        );
-      }
-      if (!$is_coll) {
-        // Create entry in the mediamosa_asset_delete table.
-        mediamosa_db::db_query(
-          "REPLACE LOW_PRIORITY {#mediamosa_asset_delete} (#asset_id, #app_id, #videotimestampmodified, #coll_id) VALUES (:asset_id, :app_id, :now, '')",
-          array(
-            '#mediamosa_asset_delete' => mediamosa_asset_delete_db::TABLE_NAME,
-            '#asset_id' => mediamosa_asset_delete_db::ID,
-            '#app_id' => mediamosa_asset_delete_db::APP_ID,
-            '#videotimestampmodified' => mediamosa_asset_delete_db::VIDEOTIMESTAMPMODIFIED,
-            '#coll_id' => mediamosa_asset_delete_db::COLL_ID,
-            ':asset_id' => $asset_id,
-            ':app_id' => $app_id,
-            ':now' => mediamosa_datetime::utc_current_timestamp_now(),
-          )
-        );
+      // Some application such as OAI wants to know about deleted assets.
+      if ($register_delete) {
+        // Foreach my collection.
+        $is_coll = FALSE;
+        foreach ($result as $collection_id) {
+          $is_coll = TRUE;
+          // Create entry in the mediamosa_asset_delete table.
+          mediamosa_db::db_query(
+            "REPLACE LOW_PRIORITY {#mediamosa_asset_delete} (#asset_id, #app_id, #videotimestampmodified, #coll_id) VALUES (:asset_id, :app_id, :now, :coll_id)",
+            array(
+              '#mediamosa_asset_delete' => mediamosa_asset_delete_db::TABLE_NAME,
+              '#asset_id' => mediamosa_asset_delete_db::ID,
+              '#app_id' => mediamosa_asset_delete_db::APP_ID,
+              '#videotimestampmodified' => mediamosa_asset_delete_db::VIDEOTIMESTAMPMODIFIED,
+              '#coll_id' => mediamosa_asset_delete_db::COLL_ID,
+              ':asset_id' => $asset_id,
+              ':app_id' => $app_id,
+              ':coll_id' => $collection_id,
+              ':now' => mediamosa_datetime::utc_current_timestamp_now(),
+            )
+          );
+        }
+        if (!$is_coll) {
+          // Create entry in the mediamosa_asset_delete table.
+          mediamosa_db::db_query(
+            "REPLACE LOW_PRIORITY {#mediamosa_asset_delete} (#asset_id, #app_id, #videotimestampmodified, #coll_id) VALUES (:asset_id, :app_id, :now, '')",
+            array(
+              '#mediamosa_asset_delete' => mediamosa_asset_delete_db::TABLE_NAME,
+              '#asset_id' => mediamosa_asset_delete_db::ID,
+              '#app_id' => mediamosa_asset_delete_db::APP_ID,
+              '#videotimestampmodified' => mediamosa_asset_delete_db::VIDEOTIMESTAMPMODIFIED,
+              '#coll_id' => mediamosa_asset_delete_db::COLL_ID,
+              ':asset_id' => $asset_id,
+              ':app_id' => $app_id,
+              ':now' => mediamosa_datetime::utc_current_timestamp_now(),
+            )
+          );
+        }
       }
 
       // Remove the asset from each collection.
