@@ -329,6 +329,9 @@ class mediamosa_asset {
    */
   protected static function trashcan($asset_id, $reindex = TRUE) {
     mediamosa_asset_metadata::metadata_asset_create($asset_id, array(self::METADATA_TRASHCAN => array(self::METADATA_TRASHCAN_TRUE)), $reindex);
+
+    // Call delete index on external database.
+    mediamosa_asset::mediamosa_asset_delete(array($asset_id));
   }
 
   /**
