@@ -12,6 +12,7 @@ class mediamosa_asset {
   const METADATA_TRASHCAN = 'trashcan';
   const METADATA_TRASHCAN_TRUE = 'TRUE';
   const METADATA_TRASHCAN_FALSE = 'FALSE';
+  const METADATA_TRASHCAN_DATE = 'trashcan_date';
 
   // ---------------------------------------------------------------- Functions.
   /**
@@ -332,6 +333,8 @@ class mediamosa_asset {
     // Trigger asset_trashcan hook.
     module_invoke_all('mediamosa_asset_trashcan', $asset_id);
 
+    mediamosa_asset_metadata::metadata_asset_create($asset_id, array(self::METADATA_TRASHCAN_DATE => array(mediamosa_datetime::utc_current_timestamp_now())), FALSE);
+
     mediamosa_asset_metadata::metadata_asset_create($asset_id, array(self::METADATA_TRASHCAN => array(self::METADATA_TRASHCAN_TRUE)), $reindex);
   }
 
@@ -347,6 +350,8 @@ class mediamosa_asset {
    *   Reindex the asset metadata.
    */
   public static function restore($asset_id, $reindex = TRUE) {
+    mediamosa_asset_metadata::metadata_asset_create($asset_id, array(self::METADATA_TRASHCAN_DATE => array('')), FALSE);
+
     mediamosa_asset_metadata::metadata_asset_create($asset_id, array(self::METADATA_TRASHCAN => array(self::METADATA_TRASHCAN_FALSE)), $reindex);
   }
 
