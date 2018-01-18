@@ -105,12 +105,11 @@ function mediamosa_rules_condition_info() {
  * Implements hook_rules_action_info().
  */
 function mediamosa_rules_action_info() {
-  $actions = array(
-    'mediamosa_action_analyse' => array(
-      'label' => t('Start an analyse job for a mediafile'),
-      'group' => t('MediaMosa'),
-      'parameter' => _mediamosa_rules_variable_mediafile_id(),
-    ),
+  $actions = array();
+  $actions['mediamosa_action_analyse'] = array(
+    'label' => t('Start an analyse job for a mediafile'),
+    'group' => t('MediaMosa'),
+    'parameter' => _mediamosa_rules_variable_mediafile_id(),
   );
   $actions['mediamosa_action_transcode'] = array(
     'label' => t('Start an transcode job for a mediafile'),
@@ -154,6 +153,13 @@ function mediamosa_rules_action_info() {
       ),
     ),
   );
+
+  $actions['mediamosa_action_asset_metadata_save'] = array(
+    'label' => t('Save a metadata field for an asset.'),
+    'group' => t('MediaMosa'),
+    'description' => t('Update the value of a metadatafield of an asset. If asset_id is not given, but mediafile is, the asset_id is determined from the mediafile_id.'),
+    'parameter' => _mediamosa_rules_variable_asset_id() + _mediamosa_rules_variable_mediafile_id() + _mediamosa_rules_variable_property() + _mediamosa_rules_variable_property_value(),
+  );
   return $actions;
 }
 
@@ -168,6 +174,45 @@ function _mediamosa_rules_variable_mediafile_id() {
     ),
   );
 }
+
+/**
+ * Defines variable asset_id.
+ */
+function _mediamosa_rules_variable_asset_id() {
+  return array(
+    'asset_id' => array(
+      'type' => 'text',
+      'label' => t('Asset id'),
+      'optional' => TRUE,
+    ),
+  );
+}
+
+/**
+ * Defines variable asset metadata property.
+ */
+function _mediamosa_rules_variable_property() {
+  return array(
+    'property' => array(
+      'type' => 'text',
+      'label' => t('Asset Metadata Property'),
+    ),
+  );
+}
+
+/**
+ * Defines variable asset metadata property.
+ * @todo: allow array.
+ */
+function _mediamosa_rules_variable_property_value() {
+  return array(
+    'property_value' => array(
+      'type' => 'text',
+      'label' => t('Asset Metadata value'),
+    ),
+  );
+}
+
 /**
  * Defines variable filesize.
  */
@@ -391,6 +436,25 @@ function mediamosa_action_mediafile_downloadable($mediafile_id) {
     return TRUE;
   }
   return FALSE;
+}
+
+/**
+ * The action to save a metadata field for an asset.
+ */
+function mediamosa_action_asset_metadata_save($asset_id = NULL, $mediafile_id = NULL, $property = NULL, $value = NULL) {
+  if (($asset_id == NULL) && ($mediafile_id != NULL)) {
+    $mf = mediamosa_asset_mediafile::get($mediafile_id);
+    $asset_id = $mf['asset_id'];
+  }
+  if ($asset_id == NULL) {
+    return FALSE;
+  }
+  $metadata_definitions_full = mediamosa_asset_metadata_property::get_metadata_properties_full(TRUE, array());
+  $result = mediamosa_asset_metadata::metadata_create($asset_id, $metadata_definitions_full, array($property => array($value)), 'update');
+  if (empty($result)) {
+    return FALSE;
+  }
+  return TRUE;
 }
 
 /**
