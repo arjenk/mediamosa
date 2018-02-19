@@ -4116,6 +4116,9 @@ function mediamosa_update_7157() {
  */
 function mediamosa_update_7158() {
 
+  // Make sure machine_name is in place:
+  mediamosa_update_7134();
+
   // Paths to replace.
   $paths = array(
     '{base_uri}ticket/{TICKET}',
@@ -5363,29 +5366,33 @@ function mediamosa_update_7196() {
  * Fix typo in mediamosa_asset_metadata_property fields.
  */
 function mediamosa_update_7197() {
-  db_change_field(
-    'mediamosa_asset_metadata_property',
-    'min_occurences',
-    'min_occurrences',
-    array(
-      'type' => 'int',
-      'not null' => TRUE,
-      'description' => 'The minimal occurence of the property.',
-      'default' => 0,
-    )
-  );
+  if (!db_field_exists('mediamosa_asset_metadata_property', 'min_occurrences')) {
+    db_change_field(
+      'mediamosa_asset_metadata_property',
+      'min_occurences',
+      'min_occurrences',
+      array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'The minimal occurence of the property.',
+        'default' => 0,
+      )
+    );
+  }
 
-  db_change_field(
-    'mediamosa_asset_metadata_property',
-    'max_occurences',
-    'max_occurrences',
-    array(
-      'type' => 'int',
-      'not null' => TRUE,
-      'description' => 'The maximum occurence of the property.',
-      'default' => 0,
-    )
-  );
+  if (!db_field_exists('mediamosa_asset_metadata_property', 'max_occurrences')) {
+    db_change_field(
+      'mediamosa_asset_metadata_property',
+      'max_occurences',
+      'max_occurrences',
+      array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'description' => 'The maximum occurence of the property.',
+        'default' => 0,
+      )
+    );
+  }
 }
 
 /**
@@ -5711,4 +5718,3 @@ function mediamosa_update_7212() {
   db_query("ALTER TABLE {mediamosa_job_server_transcode} MODIFY `tool` varchar(50) COMMENT 'Name of tool used.'");
   db_query("ALTER TABLE {mediamosa_asset_mediafile} MODIFY `tool` varchar(50) COMMENT 'Name of tool used when creating the file.'");
 }
-
