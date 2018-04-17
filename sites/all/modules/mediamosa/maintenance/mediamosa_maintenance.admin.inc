@@ -346,24 +346,22 @@ function _mediamosa_maintenance_mediafile_replace($form, &$form_state, $asset_id
   // Get asset info and owner_id.
   $asset = mediamosa_asset::get($asset_id);
 
-  // Create the upload ticket.
-  $response = mediamosa_ck::request_post_fatal('mediafile/' . $mediafile_id . '/uploadticket/create', array('user_id' => $asset['owner_id']));
-  if (!$response) {
-    $form['upload'] = array(
-      '#markup' => t('Unable to upload to MediaMosa; @reason', array('@reason' => mediamosa_ck::get_connector_last_error_text())),
-    );
-    return $form;
+  // Create upload ticket.
+  $ticket_id = mediamosa_media_ticket::create_for_upload($asset['app_id'], $mediafile_id, $asset['owner_id'], $asset['group_id']);
+
+  // Get serverupload.
+  $server_upload = mediamosa_server::get_random_upload();
+  if (!$server_upload) {
+    throw new mediamosa_exception_error(mediamosa_error::ERRORCODE_SERVER_UPLOAD_NOT_FOUND);
   }
+  // Generate unique ID.
+  $uuid = rand(1000000, 9999999);
+  $url = mediamosa_http::expectHTTP($server_upload[mediamosa_server_db::SERVER_URI]);
 
-  // Get the Action URL from the result.
-  $action = (string) $response->items->item->action;
-
-  // Get the Progress id from the result.
-  $progress_id = (int) $response->items->item->progress_id;
-  $uploadprogress_url = $response->items->item->uploadprogress_url;
-
-  // Get upload URL.
-  $upload_url = $response->items->item->action;
+  $action = (string) strtr(mediamosa_server::get_server_url($server_upload), array('{TICKET}' => $ticket_id, '{PROGRESS_ID}' => $uuid));
+  $progress_id = (int) $uuid;
+  $uploadprogress_url = strtr($server_upload[mediamosa_server_db::URI_UPLOAD_PROGRESS], array('{base_uri}' => $url, '{PROGRESS_ID}' => $uuid, '{SERVER_ID}' => $server_upload[mediamosa_server_db::NID]));
+  $upload_url = $action;
 
   // Because we override.
   $form_state['has_file_element'] = TRUE;
